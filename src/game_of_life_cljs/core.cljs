@@ -10,32 +10,40 @@
 (defonce width 50)
 (defonce height 50)
 
-(defonce cells-amount
-  (* width height))
-
 (defonce grid-width
   (str (* width cell-size) "px"))
 
-(defonce update-rate-ms 300)
+(defonce update-rate-ms 10000)
 
 ;; -------------------------
 ;; Game Logic
 
+(defn get-cell
+  [row column game-state]
+  (-> game-state
+      (get row)
+      (get column)))
+
+(defn generate-row-game-state
+  [_]
+  (vec (take width (repeatedly #(= 0 (mod (rand-int 100) 99))))))
+
 (def game-state
-  (r/atom (vec (take cells-amount (repeatedly #(= 0 (mod (rand-int 100) 4)))))))
+  (r/atom (mapv generate-row-game-state (range height))))
 
 (defn next-generation
-  [index cells]
-  (let [;cells @game-state
-        cell (get cells index)
-        neighbours [(get cells (- index width 1))
-                    (get cells (- index width))
-                    (get cells (- index width -1))
-                    (get cells (- index 1))
-                    (get cells (+ index -1))
-                    (get cells (+ index width -1))
-                    (get cells (+ index width))
-                    (get cells (+ index width 1))]
+  [row-number index game-state]
+  (let [cell (get game-state index)
+        neighbours [(get-cell (dec row-number) (dec index) game-state)
+                    (get-cell (dec row-number) index game-state)
+                    (get-cell (dec row-number) (inc index) game-state)
+
+                    (get-cell row-number (dec index) game-state)
+                    (get-cell row-number (inc index) game-state)
+
+                    (get-cell (inc row-number) (dec index) game-state)
+                    (get-cell (inc row-number) index game-state)
+                    (get-cell (inc row-number) (inc index) game-state)]
         alive-neighbours (count (filter true? neighbours))]
     (cond
       (and cell (< alive-neighbours 2)) false
@@ -45,8 +53,9 @@
       :else false)))
 
 (def update-state
-  (js/setInterval #(let [game @game-state]
-                     (reset! game-state (mapv (fn [index] (next-generation index game)) (range cells-amount))))
+  (js/setInterval #(let [game @game-state
+                         new-generation (mapv (fn [row] (mapv (fn [column] (next-generation row column game)) (range width))) (range height))]
+                     (reset! game-state new-generation))
                   update-rate-ms))
 
 ;; -------------------------
@@ -68,10 +77,9 @@
 (defn generate-grid
   []
   [:div {:style {:border "1px solid black" :width grid-width}}
-   (map generate-row (partition-all width @game-state))])
+   (map generate-row @game-state)])
 
 (defn home-page []
-  (js/console.log "generatin home-page")
   [:div
    [:h2 "Game of Life"]
    [:p "This is a simple implementation of Conway's Game of Life in ClojureScript using Reagent."]

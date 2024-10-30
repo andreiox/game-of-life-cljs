@@ -7,13 +7,13 @@
 
 (defonce cell-size 7)
 
-(defonce width 50)
-(defonce height 50)
+(defonce width 40)
+(defonce height 40)
 
 (defonce grid-width
   (str (* width cell-size) "px"))
 
-(defonce update-rate-ms 10000)
+(defonce update-rate-ms 100)
 
 ;; -------------------------
 ;; Game Logic
@@ -26,14 +26,14 @@
 
 (defn generate-row-game-state
   [_]
-  (vec (take width (repeatedly #(= 0 (mod (rand-int 100) 99))))))
+  (vec (take width (repeatedly #(= 0 (mod (rand-int 100) 7))))))
 
 (def game-state
   (r/atom (mapv generate-row-game-state (range height))))
 
 (defn next-generation
   [row-number index game-state]
-  (let [cell (get game-state index)
+  (let [cell (get-cell row-number index game-state)
         neighbours [(get-cell (dec row-number) (dec index) game-state)
                     (get-cell (dec row-number) index game-state)
                     (get-cell (dec row-number) (inc index) game-state)

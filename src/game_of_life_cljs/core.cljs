@@ -31,6 +31,16 @@
 (def game-state
   (r/atom (mapv generate-row-game-state (range height))))
 
+(def generation-count
+  (r/atom 0))
+
+(defn count-alive
+  [game]
+  (count (filter true? (apply concat game))))
+
+(def population-count
+  (r/atom (count-alive @game-state)))
+
 (defn next-generation
   [row-number index game-state]
   (let [cell (get-cell row-number index game-state)
@@ -55,7 +65,9 @@
 (def update-state
   (js/setInterval #(let [game @game-state
                          new-generation (mapv (fn [row] (mapv (fn [column] (next-generation row column game)) (range width))) (range height))]
-                     (reset! game-state new-generation))
+                     (reset! game-state new-generation)
+                     (swap! generation-count inc)
+                     (reset! population-count (count-alive new-generation)))
                   update-rate-ms))
 
 ;; -------------------------
@@ -83,6 +95,9 @@
   [:div
    [:h2 "Game of Life"]
    [:p "This is a simple implementation of Conway's Game of Life in ClojureScript using Reagent."]
+   [:span {:style {:font-size "0.8em"}} "Generation: " @generation-count]
+   [:br]
+   [:span {:style {:font-size "0.8em"}} "Population: " @population-count]
    [generate-grid]])
 
 ;; -------------------------
